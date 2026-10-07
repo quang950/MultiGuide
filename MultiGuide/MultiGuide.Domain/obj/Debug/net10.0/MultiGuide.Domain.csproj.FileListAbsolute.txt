@@ -1,0 +1,12 @@
+D:\Build-Project-CNPM-Tourlingo\TourLingo\MultiGuide\MultiGuide.Domain\bin\Debug\net10.0\MultiGuide.Domain.deps.json
+D:\Build-Project-CNPM-Tourlingo\TourLingo\MultiGuide\MultiGuide.Domain\bin\Debug\net10.0\MultiGuide.Domain.dll
+D:\Build-Project-CNPM-Tourlingo\TourLingo\MultiGuide\MultiGuide.Domain\bin\Debug\net10.0\MultiGuide.Domain.pdb
+D:\Build-Project-CNPM-Tourlingo\TourLingo\MultiGuide\MultiGuide.Domain\obj\Debug\net10.0\MultiGuide.Domain.GeneratedMSBuildEditorConfig.editorconfig
+D:\Build-Project-CNPM-Tourlingo\TourLingo\MultiGuide\MultiGuide.Domain\obj\Debug\net10.0\MultiGuide.Domain.AssemblyInfoInputs.cache
+D:\Build-Project-CNPM-Tourlingo\TourLingo\MultiGuide\MultiGuide.Domain\obj\Debug\net10.0\MultiGuide.Domain.AssemblyInfo.cs
+D:\Build-Project-CNPM-Tourlingo\TourLingo\MultiGuide\MultiGuide.Domain\obj\Debug\net10.0\MultiGuide.Domain.csproj.CoreCompileInputs.cache
+D:\Build-Project-CNPM-Tourlingo\TourLingo\MultiGuide\MultiGuide.Domain\obj\Debug\net10.0\MultiGuide.Domain.sourcelink.json
+D:\Build-Project-CNPM-Tourlingo\TourLingo\MultiGuide\MultiGuide.Domain\obj\Debug\net10.0\MultiGuide.Domain.dll
+D:\Build-Project-CNPM-Tourlingo\TourLingo\MultiGuide\MultiGuide.Domain\obj\Debug\net10.0\refint\MultiGuide.Domain.dll
+D:\Build-Project-CNPM-Tourlingo\TourLingo\MultiGuide\MultiGuide.Domain\obj\Debug\net10.0\MultiGuide.Domain.pdb
+D:\Build-Project-CNPM-Tourlingo\TourLingo\MultiGuide\MultiGuide.Domain\obj\Debug\net10.0\ref\MultiGuide.Domain.dll

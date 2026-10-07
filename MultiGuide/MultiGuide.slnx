@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="MultiGuide.Api/MultiGuide.Api.csproj" />
+  <Project Path="MultiGuide.Business/MultiGuide.Business.csproj" />
+  <Project Path="MultiGuide.Data/MultiGuide.Data.csproj" />
+  <Project Path="MultiGuide.Domain/MultiGuide.Domain.csproj" />
+  <Project Path="MultiGuide.Tests/MultiGuide.Tests.csproj" />
+</Solution>
