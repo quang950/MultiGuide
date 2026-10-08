@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "VfXgiwi2loA=",
+  "dgSpecHash": "IFmMDkeNYlA=",
   "success": true,
-  "projectFilePath": "D:\\Build-Project-CNPM-Tourlingo\\TourLingo\\MultiGuide\\MultiGuide.Tests\\MultiGuide.Tests.csproj",
+  "projectFilePath": "D:\\MultiGuide\\MultiGuide\\MultiGuide.Tests\\MultiGuide.Tests.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\admin\\.nuget\\packages\\coverlet.collector\\6.0.4\\coverlet.collector.6.0.4.nupkg.sha512",
     "C:\\Users\\admin\\.nuget\\packages\\microsoft.aspnetcore.openapi\\10.0.12\\microsoft.aspnetcore.openapi.10.0.12.nupkg.sha512",

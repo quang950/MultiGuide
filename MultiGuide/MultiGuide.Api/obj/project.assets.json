@@ -140,11 +140,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\Build-Project-CNPM-Tourlingo\\TourLingo\\MultiGuide\\MultiGuide.Api\\MultiGuide.Api.csproj",
+      "projectUniqueName": "D:\\MultiGuide\\MultiGuide\\MultiGuide.Api\\MultiGuide.Api.csproj",
       "projectName": "MultiGuide.Api",
-      "projectPath": "D:\\Build-Project-CNPM-Tourlingo\\TourLingo\\MultiGuide\\MultiGuide.Api\\MultiGuide.Api.csproj",
+      "projectPath": "D:\\MultiGuide\\MultiGuide\\MultiGuide.Api\\MultiGuide.Api.csproj",
       "packagesPath": "C:\\Users\\admin\\.nuget\\packages\\",
-      "outputPath": "D:\\Build-Project-CNPM-Tourlingo\\TourLingo\\MultiGuide\\MultiGuide.Api\\obj\\",
+      "outputPath": "D:\\MultiGuide\\MultiGuide\\MultiGuide.Api\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\admin\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -162,8 +162,8 @@
           "framework": "net10.0",
           "targetAlias": "net10.0",
           "projectReferences": {
-            "D:\\Build-Project-CNPM-Tourlingo\\TourLingo\\MultiGuide\\MultiGuide.Business\\MultiGuide.Business.csproj": {
-              "projectPath": "D:\\Build-Project-CNPM-Tourlingo\\TourLingo\\MultiGuide\\MultiGuide.Business\\MultiGuide.Business.csproj"
+            "D:\\MultiGuide\\MultiGuide\\MultiGuide.Business\\MultiGuide.Business.csproj": {
+              "projectPath": "D:\\MultiGuide\\MultiGuide\\MultiGuide.Business\\MultiGuide.Business.csproj"
             }
           }
         }

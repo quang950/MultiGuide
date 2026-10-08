@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MultiGuide.Domain")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b0c0fa8c5e196cc060129b25c1df612b7a2365df")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b8f60e8db46eaabd48f4ed2cc27dbf28776c85bd")]
 [assembly: System.Reflection.AssemblyProductAttribute("MultiGuide.Domain")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MultiGuide.Domain")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
