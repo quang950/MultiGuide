@@ -1,4 +1,4 @@
-﻿namespace MultiGuide.Business;
+namespace MultiGuide.Business;
 
 public class Class1
 {
