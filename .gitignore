@@ -1,1 +1,9 @@
 *.docx
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
+TourLingo.docx
+.env
+coverage/
+TestResults/

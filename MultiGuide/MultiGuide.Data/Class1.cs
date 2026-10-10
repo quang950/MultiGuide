@@ -1,4 +1,4 @@
-﻿namespace MultiGuide.Data;
+namespace MultiGuide.Data;
 
 public class Class1
 {

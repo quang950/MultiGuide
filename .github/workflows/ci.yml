@@ -2,15 +2,18 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
+
+env:
+  SLN: MultiGuide/MultiGuide.slnx
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup .NET
@@ -19,10 +22,19 @@ jobs:
           dotnet-version: 10.0.x
 
       - name: Restore
-        run: dotnet restore MultiGuide/MultiGuide.slnx
+        run: dotnet restore $SLN
+
+      - name: Format check
+        run: dotnet format $SLN --verify-no-changes --no-restore
 
       - name: Build
-        run: dotnet build MultiGuide/MultiGuide.slnx --no-restore --configuration Release
+        run: dotnet build $SLN --no-restore --configuration Release -warnaserror
 
       - name: Test
-        run: dotnet test MultiGuide/MultiGuide.slnx --no-build --configuration Release
+        run: dotnet test $SLN --no-build --configuration Release --collect:"XPlat Code Coverage" --results-directory ./coverage
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/**/coverage.cobertura.xml

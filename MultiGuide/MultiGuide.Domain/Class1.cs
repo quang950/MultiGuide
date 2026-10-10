@@ -1,4 +1,4 @@
-﻿namespace MultiGuide.Domain;
+namespace MultiGuide.Domain;
 
 public class Class1
 {

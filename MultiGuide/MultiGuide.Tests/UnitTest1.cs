@@ -1,4 +1,4 @@
-﻿namespace MultiGuide.Tests;
+namespace MultiGuide.Tests;
 
 public class UnitTest1
 {
