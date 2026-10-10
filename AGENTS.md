@@ -104,6 +104,9 @@ Ràng buộc quan trọng: unique `TourArea.code`; unique `(poi_id, language_cod
 5. **Tự kiểm tra trước khi báo xong:** chạy `dotnet build -warnaserror` và `dotnet test`. Báo kết quả thật, không nói "chắc là chạy được".
 6. **Báo cáo cuối task** theo mẫu: file đã tạo/sửa (theo tầng), quyết định đã đưa ra, kết quả build/test, việc còn dở hoặc rủi ro.
 7. Không bịa API, package, hay cú pháp. Không chắc thì nói không chắc.
+9. Chỉ người phụ trách dữ liệu (A) tạo migration. Người khác cần đổi schema thì nhờ A.
+10. Mỗi tính năng tự đăng ký DI bằng extension method riêng (vd AddPaymentServices()); Program.cs chỉ gọi các hàm này.
+11. Có thư mục web/ ở gốc repo (FE HTML/CSS/JS thuần, không framework). Agent chỉ đụng web/ khi task nói rõ.
 
 ## 11. Definition of Done (mỗi story)
 Code qua build không cảnh báo · có unit test Service · đúng quy tắc phụ thuộc · OpenAPI cập nhật · CI xanh · không có secret/tọa độ trong log · không file thừa trong commit.
@@ -112,3 +115,4 @@ Code qua build không cảnh báo · có unit test Service · đúng quy tắc p
 - Xóa file template `WeatherForecast.cs` và controller mẫu nếu có.
 - Chỉ giữ **một** thư mục `.github/workflows` ở gốc repo git; xác nhận đường dẫn solution trong `ci.yml` (cần `working-directory` nếu `.slnx` nằm trong thư mục con).
 - Bỏ `TourLingo.docx` và tài liệu không liên quan khỏi repo.
+
