@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MultiGuide.Domain\MultiGuide.Domain.csproj" />
+    <ProjectReference Include="..\MultiGuide.Business\MultiGuide.Business.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

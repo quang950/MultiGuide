@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MultiGuide.Business\MultiGuide.Business.csproj" />
+    <ProjectReference Include="..\MultiGuide.Data\MultiGuide.Data.csproj" />
   </ItemGroup>
 
 </Project>
