@@ -11,7 +11,7 @@ MultiGuide: hệ thống thuyết minh tự động đa ngôn ngữ cho khách d
 
 ## 2. Stack
 - .NET 10 (`10.0.x`), ASP.NET Core Web API, EF Core, MySQL (utf8mb4).
-- Provider MySQL cho EF Core: **kiểm tra bản tương thích EF Core 10 trước khi cài**, hỏi người dùng nếu không chắc.
+- Provider MySQL cho EF Core: `MySql.EntityFrameworkCore` của Oracle, pin `10.0.9` (stable; hỗ trợ EF Core 10/.NET 10). Đã thử migration trên MySQL `8.4`.
 - Test: xUnit. Mock: NSubstitute hoặc Moq (dùng một loại, đã chọn thì giữ nguyên).
 - Log: Serilog (JSON). Lỗi: ProblemDetails (RFC 7807).
 - Hạ tầng: Docker, Docker Compose, GitHub Actions, GHCR, Caddy (HTTPS).
