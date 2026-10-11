@@ -1,3 +1,4 @@
+using MultiGuide.Api.Extensions;
 using System.Text.Json;
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,6 +9,7 @@ builder.Services.AddControllers()
         o.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower);
 builder.Services.AddOpenApi();
 
+builder.Services.AddCommonServices();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
