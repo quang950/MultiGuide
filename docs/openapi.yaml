@@ -1,0 +1,500 @@
+openapi: 3.0.3
+info:
+  title: MultiGuide API
+  version: 1.0.0
+  description: >-
+    Guest-facing contract (PRD v1.1, section 7).
+    JSON properties use snake_case. Timestamps are UTC, ISO 8601 with Z suffix.
+servers:
+  - url: /api/v1
+tags:
+  - name: Areas
+  - name: Sessions
+  - name: Payments
+  - name: Passes
+  - name: Pois
+  - name: Media
+  - name: PlayLogs
+paths:
+  /areas/{code}:
+    get:
+      tags: [Areas]
+      operationId: getArea
+      summary: Get area info from the QR code (US-01)
+      parameters:
+        - name: code
+          in: path
+          required: true
+          description: Area code printed in the QR.
+          schema:
+            type: string
+            maxLength: 50
+          example: hoi-an
+      responses:
+        '200':
+          description: Area found and active.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AreaResponse'
+        '404':
+          description: Area does not exist or is inactive.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                status: 404
+                code: AREA_NOT_FOUND
+                traceId: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+  /areas/{code}/languages:
+    get:
+      tags: [Areas]
+      operationId: listAreaLanguages
+      summary: List languages available for an area (US-02)
+      description: >-
+        Returns only active languages that have at least one POI
+        with a translation in this area.
+      parameters:
+        - name: code
+          in: path
+          required: true
+          description: Area code printed in the QR.
+          schema:
+            type: string
+            maxLength: 50
+          example: hoi-an
+      responses:
+        '200':
+          description: List of available languages (can be empty).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LanguageResponse'
+        '404':
+          description: Area does not exist or is inactive.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                status: 404
+                code: AREA_NOT_FOUND
+                traceId: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+  /sessions:
+    post:
+      tags: [Sessions]
+      operationId: createSession
+      summary: Create a visitor session (US-03)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSessionRequest'
+      responses:
+        '201':
+          description: Session created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '404':
+          description: Area does not exist or is inactive (AREA_NOT_FOUND).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: Invalid language or invalid body (VALIDATION_ERROR).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+  /sessions/{id}/language:
+    patch:
+      tags: [Sessions]
+      operationId: changeSessionLanguage
+      summary: Change the language of a session (US-04)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSessionLanguageRequest'
+      responses:
+        '200':
+          description: Language updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '404':
+          description: Session not found (error code to be agreed with the team).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: Invalid language (VALIDATION_ERROR).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+  /payments:
+    post:
+      tags: [Payments]
+      operationId: createPayment
+      summary: Pay for a session and receive an access pass (US-06, US-07)
+      description: >-
+        The Idempotency-Key header is required. Same key and same body returns
+        the earlier result (200). Same key with a different body returns 422
+        IDEMPOTENCY_KEY_REUSED. The plaintext access_token is returned only
+        once, in the 201 response.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentRequest'
+      responses:
+        '201':
+          description: Payment succeeded; access_token is included.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '200':
+          description: Replay of an earlier request with the same key and body.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '402':
+          description: Gateway declined (PAYMENT_FAILED). Retry with a new key.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: VALIDATION_ERROR or IDEMPOTENCY_KEY_REUSED.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+  /passes/current:
+    get:
+      tags: [Passes]
+      operationId: getCurrentPass
+      summary: Get status and expiry of the current access pass (US-10)
+      security:
+        - AccessPass: []
+      responses:
+        '200':
+          description: Pass status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PassStatusResponse'
+        '401':
+          description: Token missing (PASS_MISSING).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '403':
+          description: PASS_INVALID or PASS_EXPIRED.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+  /pois/nearby:
+    get:
+      tags: [Pois]
+      summary: Tìm POI gần vị trí khách (US-12)
+      description: |
+        Cần AccessPass. Server stateless, không lưu tọa độ.
+        Sắp xếp theo priority giảm dần, rồi distance_m tăng dần.
+        Debounce 3 giây và cooldown 5 phút do FE xử lý dựa trên within_trigger.
+        Lỗi: 401 PASS_MISSING, 403 PASS_INVALID/PASS_EXPIRED, 422 VALIDATION_ERROR.
+      security:
+        - accessPass: []
+      parameters:
+        - {name: lat, in: query, required: true, schema: {type: number, format: double, minimum: -90, maximum: 90}}
+        - {name: lng, in: query, required: true, schema: {type: number, format: double, minimum: -180, maximum: 180}}
+        - {name: lang, in: query, required: true, schema: {type: string, example: vi}}
+        - name: radius
+          in: query
+          required: false
+          description: Bán kính tìm kiếm (mét). Mặc định 100, tối đa 500.
+          schema: {type: integer, minimum: 1, maximum: 500, default: 100}
+      responses:
+        "200":
+          description: Danh sách POI trong bán kính (có thể rỗng)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/NearbyPoi"}
+              example:
+                - poi_id: 3
+                  title: Cổng chính
+                  priority: 80
+                  trigger_radius_m: 30
+                  distance_m: 24
+                  within_trigger: true
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /pois/{id}:
+    get:
+      tags: [Pois]
+      summary: Lấy nội dung POI theo ngôn ngữ (US-16, US-17)
+      description: |
+        Cần AccessPass. Fallback ngôn ngữ: ngôn ngữ chọn, rồi en, rồi vi.
+        fallback_language là null nếu không phải fallback. Có chữ nhưng thiếu audio thì audio_url là null.
+        Lỗi: 401 PASS_MISSING, 403 PASS_INVALID/PASS_EXPIRED/PASS_AREA_MISMATCH,
+        404 POI_CONTENT_NOT_FOUND (không có bản dịch nào hoặc POI tắt).
+      security:
+        - accessPass: []
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: integer, format: int64}}
+        - {name: lang, in: query, required: true, schema: {type: string, example: vi}}
+      responses:
+        "200":
+          description: Nội dung POI
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PoiContent"}
+              example:
+                title: Cổng chính
+                description: Đây là cổng chính của khu tham quan...
+                image_url: /api/v1/media/12
+                audio_url: /api/v1/media/45
+                language: vi
+                fallback_language: null
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+  /media/{fileId}:
+    get:
+      tags: [Media]
+      summary: Phục vụ audio và ảnh, hỗ trợ Range (US-18)
+      description: |
+        Cần AccessPass. Không có header Range thì trả 200 và toàn bộ file;
+        có Range thì trả 206 kèm Content-Range.
+        Lỗi: 401 PASS_MISSING, 403 PASS_INVALID/PASS_EXPIRED, 404.
+      security:
+        - accessPass: []
+      parameters:
+        - {name: fileId, in: path, required: true, schema: {type: integer, format: int64}}
+        - name: Range
+          in: header
+          required: false
+          schema: {type: string, example: "bytes=0-1048575"}
+      responses:
+        "200":
+          description: Toàn bộ file
+          headers:
+            Accept-Ranges: {schema: {type: string, example: bytes}}
+          content:
+            audio/mpeg: {schema: {type: string, format: binary}}
+            image/jpeg: {schema: {type: string, format: binary}}
+            image/png: {schema: {type: string, format: binary}}
+            image/webp: {schema: {type: string, format: binary}}
+        "206":
+          description: Một phần file (khi có header Range)
+          headers:
+            Accept-Ranges: {schema: {type: string, example: bytes}}
+            Content-Range: {schema: {type: string, example: "bytes 0-1048575/3145728"}}
+          content:
+            audio/mpeg: {schema: {type: string, format: binary}}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+components:
+  securitySchemes:
+    AccessPass:
+      type: http
+      scheme: bearer
+      description: >-
+        Opaque access token returned once by POST /payments.
+        Send as Authorization: Bearer <access_token>.
+        
+  responses:
+    Problem:
+      description: Error response
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+
+  schemas:
+    ProblemDetails:
+      type: object
+      # ... (giữ nguyên các schemas phía dưới của bạn)
+      description: Error body (RFC 7807) with a stable code and a trace id.
+      required: [status, code, traceId]
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+        code:
+          type: string
+          example: AREA_NOT_FOUND
+          enum:
+            - PASS_MISSING
+            - AUTH_REQUIRED
+            - PASS_INVALID
+            - PASS_EXPIRED
+            - PASS_AREA_MISMATCH
+            - FORBIDDEN
+            - AREA_NOT_FOUND
+            - POI_CONTENT_NOT_FOUND
+            - TRANSLATION_EXISTS
+            - PAYMENT_FAILED
+            - VALIDATION_ERROR
+            - IDEMPOTENCY_KEY_REUSED
+            - ACCOUNT_LOCKED
+            - RATE_LIMITED
+        traceId:
+          type: string
+    AreaResponse:
+      type: object
+      required: [code, name, price_usd, pass_ttl_hours]
+      properties:
+        code:
+          type: string
+          example: hoi-an
+        name:
+          type: string
+          example: Hoi An Ancient Town
+        price_usd:
+          type: number
+          description: Price of one access pass in USD.
+          example: 2.00
+        pass_ttl_hours:
+          type: integer
+          description: Hours an access pass stays valid after payment.
+          example: 24
+    LanguageResponse:
+      type: object
+      required: [code, name]
+      properties:
+        code:
+          type: string
+          description: Language code used in lang parameters.
+          example: en
+        name:
+          type: string
+          example: English
+    CreateSessionRequest:
+      type: object
+      required: [area_code, language_code]
+      properties:
+        area_code:
+          type: string
+          maxLength: 50
+          example: hoi-an
+        language_code:
+          type: string
+          pattern: '^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})?$'
+          example: en
+    SessionResponse:
+      type: object
+      required: [session_id, area_code, language_code, started_at]
+      properties:
+        session_id:
+          type: string
+          format: uuid
+        area_code:
+          type: string
+          example: hoi-an
+        language_code:
+          type: string
+          example: en
+        started_at:
+          type: string
+          format: date-time
+          description: UTC, ISO 8601 with Z.
+    UpdateSessionLanguageRequest:
+      type: object
+      required: [language_code]
+      properties:
+        language_code:
+          type: string
+          pattern: '^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})?$'
+          example: vi
+    CreatePaymentRequest:
+      type: object
+      required: [session_id]
+      properties:
+        session_id:
+          type: string
+          format: uuid
+    PaymentResponse:
+      type: object
+      required: [status, expires_at]
+      properties:
+        status:
+          type: string
+          example: succeeded
+        access_token:
+          type: string
+          nullable: true
+          description: Plaintext token. Only present in the first 201 response.
+        expires_at:
+          type: string
+          format: date-time
+    PassStatusResponse:
+      type: object
+      required: [status, expires_at]
+      properties:
+        status:
+          type: string
+          example: active
+        expires_at:
+          type: string
+          format: date-time
+    NearbyPoi:
+      type: object
+      required: [poi_id, title, priority, trigger_radius_m, distance_m, within_trigger]
+      properties:
+        poi_id: {type: integer, format: int64}
+        title: {type: string}
+        priority: {type: integer, minimum: 0, maximum: 100}
+        trigger_radius_m: {type: integer, minimum: 5, maximum: 200}
+        distance_m: {type: integer, description: Khoảng cách làm tròn 1 mét}
+        within_trigger: {type: boolean, description: "true khi distance_m <= trigger_radius_m"}
+    PoiContent:
+      type: object
+      required: [title, description, language]
+      properties:
+        title: {type: string}
+        description: {type: string}
+        image_url: {type: string, nullable: true}
+        audio_url: {type: string, nullable: true}
+        language: {type: string, description: Ngôn ngữ thực tế của nội dung trả về}
+        fallback_language: {type: string, nullable: true, description: null nếu không phải fallback}
