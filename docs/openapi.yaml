@@ -223,6 +223,74 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
+  /pois/nearby:
+    get:
+      tags: [Pois]
+      summary: Tìm POI gần vị trí khách (US-12)
+      description: |
+        Cần AccessPass. Server stateless, không lưu tọa độ.
+        Sắp xếp theo priority giảm dần, rồi distance_m tăng dần.
+        Debounce 3 giây và cooldown 5 phút do FE xử lý dựa trên within_trigger.
+        Lỗi: 401 PASS_MISSING, 403 PASS_INVALID/PASS_EXPIRED, 422 VALIDATION_ERROR.
+      security:
+        - accessPass: []
+      parameters:
+        - {name: lat, in: query, required: true, schema: {type: number, format: double, minimum: -90, maximum: 90}}
+        - {name: lng, in: query, required: true, schema: {type: number, format: double, minimum: -180, maximum: 180}}
+        - {name: lang, in: query, required: true, schema: {type: string, example: vi}}
+        - name: radius
+          in: query
+          required: false
+          description: Bán kính tìm kiếm (mét). Mặc định 100, tối đa 500.
+          schema: {type: integer, minimum: 1, maximum: 500, default: 100}
+      responses:
+        "200":
+          description: Danh sách POI trong bán kính (có thể rỗng)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/NearbyPoi"}
+              example:
+                - poi_id: 3
+                  title: Cổng chính
+                  priority: 80
+                  trigger_radius_m: 30
+                  distance_m: 24
+                  within_trigger: true
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /pois/{id}:
+    get:
+      tags: [Pois]
+      summary: Lấy nội dung POI theo ngôn ngữ (US-16, US-17)
+      description: |
+        Cần AccessPass. Fallback ngôn ngữ: ngôn ngữ chọn, rồi en, rồi vi.
+        fallback_language là null nếu không phải fallback. Có chữ nhưng thiếu audio thì audio_url là null.
+        Lỗi: 401 PASS_MISSING, 403 PASS_INVALID/PASS_EXPIRED/PASS_AREA_MISMATCH,
+        404 POI_CONTENT_NOT_FOUND (không có bản dịch nào hoặc POI tắt).
+      security:
+        - accessPass: []
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: integer, format: int64}}
+        - {name: lang, in: query, required: true, schema: {type: string, example: vi}}
+      responses:
+        "200":
+          description: Nội dung POI
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PoiContent"}
+              example:
+                title: Cổng chính
+                description: Đây là cổng chính của khu tham quan...
+                image_url: /api/v1/media/12
+                audio_url: /api/v1/media/45
+                language: vi
+                fallback_language: null
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
 components:
   securitySchemes:
     AccessPass:
@@ -231,9 +299,19 @@ components:
       description: >-
         Opaque access token returned once by POST /payments.
         Send as Authorization: Bearer <access_token>.
+        
+  responses:
+    Problem:
+      description: Error response
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+
   schemas:
     ProblemDetails:
       type: object
+      # ... (giữ nguyên các schemas phía dưới của bạn)
       description: Error body (RFC 7807) with a stable code and a trace id.
       required: [status, code, traceId]
       properties:
@@ -281,7 +359,7 @@ components:
           type: number
           description: Price of one access pass in USD.
           example: 2.00
-            pass_ttl_hours:
+        pass_ttl_hours:
           type: integer
           description: Hours an access pass stays valid after payment.
           example: 24
@@ -364,3 +442,23 @@ components:
         expires_at:
           type: string
           format: date-time
+    NearbyPoi:
+      type: object
+      required: [poi_id, title, priority, trigger_radius_m, distance_m, within_trigger]
+      properties:
+        poi_id: {type: integer, format: int64}
+        title: {type: string}
+        priority: {type: integer, minimum: 0, maximum: 100}
+        trigger_radius_m: {type: integer, minimum: 5, maximum: 200}
+        distance_m: {type: integer, description: Khoảng cách làm tròn 1 mét}
+        within_trigger: {type: boolean, description: "true khi distance_m <= trigger_radius_m"}
+    PoiContent:
+      type: object
+      required: [title, description, language]
+      properties:
+        title: {type: string}
+        description: {type: string}
+        image_url: {type: string, nullable: true}
+        audio_url: {type: string, nullable: true}
+        language: {type: string, description: Ngôn ngữ thực tế của nội dung trả về}
+        fallback_language: {type: string, nullable: true, description: null nếu không phải fallback}
