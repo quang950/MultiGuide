@@ -47,7 +47,7 @@ paths:
                 status: 404
                 code: AREA_NOT_FOUND
                 traceId: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
-    /areas/{code}/languages:
+  /areas/{code}/languages:
     get:
       tags: [Areas]
       operationId: listAreaLanguages
@@ -83,6 +83,146 @@ paths:
                 status: 404
                 code: AREA_NOT_FOUND
                 traceId: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+  /sessions:
+    post:
+      tags: [Sessions]
+      operationId: createSession
+      summary: Create a visitor session (US-03)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSessionRequest'
+      responses:
+        '201':
+          description: Session created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '404':
+          description: Area does not exist or is inactive (AREA_NOT_FOUND).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: Invalid language or invalid body (VALIDATION_ERROR).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+  /sessions/{id}/language:
+    patch:
+      tags: [Sessions]
+      operationId: changeSessionLanguage
+      summary: Change the language of a session (US-04)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSessionLanguageRequest'
+      responses:
+        '200':
+          description: Language updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '404':
+          description: Session not found (error code to be agreed with the team).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: Invalid language (VALIDATION_ERROR).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+  /payments:
+    post:
+      tags: [Payments]
+      operationId: createPayment
+      summary: Pay for a session and receive an access pass (US-06, US-07)
+      description: >-
+        The Idempotency-Key header is required. Same key and same body returns
+        the earlier result (200). Same key with a different body returns 422
+        IDEMPOTENCY_KEY_REUSED. The plaintext access_token is returned only
+        once, in the 201 response.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentRequest'
+      responses:
+        '201':
+          description: Payment succeeded; access_token is included.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '200':
+          description: Replay of an earlier request with the same key and body.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '402':
+          description: Gateway declined (PAYMENT_FAILED). Retry with a new key.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: VALIDATION_ERROR or IDEMPOTENCY_KEY_REUSED.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+  /passes/current:
+    get:
+      tags: [Passes]
+      operationId: getCurrentPass
+      summary: Get status and expiry of the current access pass (US-10)
+      security:
+        - AccessPass: []
+      responses:
+        '200':
+          description: Pass status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PassStatusResponse'
+        '401':
+          description: Token missing (PASS_MISSING).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '403':
+          description: PASS_INVALID or PASS_EXPIRED.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
 components:
   securitySchemes:
     AccessPass:
@@ -141,8 +281,11 @@ components:
           type: number
           description: Price of one access pass in USD.
           example: 2.00
-        pass_ttl_hours:
-        LanguageResponse:
+            pass_ttl_hours:
+          type: integer
+          description: Hours an access pass stays valid after payment.
+          example: 24
+    LanguageResponse:
       type: object
       required: [code, name]
       properties:
@@ -153,7 +296,71 @@ components:
         name:
           type: string
           example: English
-          type: integer
-          description: Hours an access pass stays valid after payment.
-          example: 24
-
+    CreateSessionRequest:
+      type: object
+      required: [area_code, language_code]
+      properties:
+        area_code:
+          type: string
+          maxLength: 50
+          example: hoi-an
+        language_code:
+          type: string
+          pattern: '^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})?$'
+          example: en
+    SessionResponse:
+      type: object
+      required: [session_id, area_code, language_code, started_at]
+      properties:
+        session_id:
+          type: string
+          format: uuid
+        area_code:
+          type: string
+          example: hoi-an
+        language_code:
+          type: string
+          example: en
+        started_at:
+          type: string
+          format: date-time
+          description: UTC, ISO 8601 with Z.
+    UpdateSessionLanguageRequest:
+      type: object
+      required: [language_code]
+      properties:
+        language_code:
+          type: string
+          pattern: '^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})?$'
+          example: vi
+    CreatePaymentRequest:
+      type: object
+      required: [session_id]
+      properties:
+        session_id:
+          type: string
+          format: uuid
+    PaymentResponse:
+      type: object
+      required: [status, expires_at]
+      properties:
+        status:
+          type: string
+          example: succeeded
+        access_token:
+          type: string
+          nullable: true
+          description: Plaintext token. Only present in the first 201 response.
+        expires_at:
+          type: string
+          format: date-time
+    PassStatusResponse:
+      type: object
+      required: [status, expires_at]
+      properties:
+        status:
+          type: string
+          example: active
+        expires_at:
+          type: string
+          format: date-time
