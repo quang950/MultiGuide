@@ -291,6 +291,42 @@ paths:
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
+  /media/{fileId}:
+    get:
+      tags: [Media]
+      summary: Phục vụ audio và ảnh, hỗ trợ Range (US-18)
+      description: |
+        Cần AccessPass. Không có header Range thì trả 200 và toàn bộ file;
+        có Range thì trả 206 kèm Content-Range.
+        Lỗi: 401 PASS_MISSING, 403 PASS_INVALID/PASS_EXPIRED, 404.
+      security:
+        - accessPass: []
+      parameters:
+        - {name: fileId, in: path, required: true, schema: {type: integer, format: int64}}
+        - name: Range
+          in: header
+          required: false
+          schema: {type: string, example: "bytes=0-1048575"}
+      responses:
+        "200":
+          description: Toàn bộ file
+          headers:
+            Accept-Ranges: {schema: {type: string, example: bytes}}
+          content:
+            audio/mpeg: {schema: {type: string, format: binary}}
+            image/jpeg: {schema: {type: string, format: binary}}
+            image/png: {schema: {type: string, format: binary}}
+            image/webp: {schema: {type: string, format: binary}}
+        "206":
+          description: Một phần file (khi có header Range)
+          headers:
+            Accept-Ranges: {schema: {type: string, example: bytes}}
+            Content-Range: {schema: {type: string, example: "bytes 0-1048575/3145728"}}
+          content:
+            audio/mpeg: {schema: {type: string, format: binary}}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
 components:
   securitySchemes:
     AccessPass:
