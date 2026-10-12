@@ -47,6 +47,42 @@ paths:
                 status: 404
                 code: AREA_NOT_FOUND
                 traceId: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+    /areas/{code}/languages:
+    get:
+      tags: [Areas]
+      operationId: listAreaLanguages
+      summary: List languages available for an area (US-02)
+      description: >-
+        Returns only active languages that have at least one POI
+        with a translation in this area.
+      parameters:
+        - name: code
+          in: path
+          required: true
+          description: Area code printed in the QR.
+          schema:
+            type: string
+            maxLength: 50
+          example: hoi-an
+      responses:
+        '200':
+          description: List of available languages (can be empty).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LanguageResponse'
+        '404':
+          description: Area does not exist or is inactive.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                status: 404
+                code: AREA_NOT_FOUND
+                traceId: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
 components:
   securitySchemes:
     AccessPass:
@@ -106,6 +142,17 @@ components:
           description: Price of one access pass in USD.
           example: 2.00
         pass_ttl_hours:
+        LanguageResponse:
+      type: object
+      required: [code, name]
+      properties:
+        code:
+          type: string
+          description: Language code used in lang parameters.
+          example: en
+        name:
+          type: string
+          example: English
           type: integer
           description: Hours an access pass stays valid after payment.
           example: 24
