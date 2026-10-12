@@ -15,7 +15,38 @@ tags:
   - name: Pois
   - name: Media
   - name: PlayLogs
-paths: {}
+paths:
+  /areas/{code}:
+    get:
+      tags: [Areas]
+      operationId: getArea
+      summary: Get area info from the QR code (US-01)
+      parameters:
+        - name: code
+          in: path
+          required: true
+          description: Area code printed in the QR.
+          schema:
+            type: string
+            maxLength: 50
+          example: hoi-an
+      responses:
+        '200':
+          description: Area found and active.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AreaResponse'
+        '404':
+          description: Area does not exist or is inactive.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                status: 404
+                code: AREA_NOT_FOUND
+                traceId: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
 components:
   securitySchemes:
     AccessPass:
@@ -60,3 +91,22 @@ components:
             - RATE_LIMITED
         traceId:
           type: string
+    AreaResponse:
+      type: object
+      required: [code, name, price_usd, pass_ttl_hours]
+      properties:
+        code:
+          type: string
+          example: hoi-an
+        name:
+          type: string
+          example: Hoi An Ancient Town
+        price_usd:
+          type: number
+          description: Price of one access pass in USD.
+          example: 2.00
+        pass_ttl_hours:
+          type: integer
+          description: Hours an access pass stays valid after payment.
+          example: 24
+
