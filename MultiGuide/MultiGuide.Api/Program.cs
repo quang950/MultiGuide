@@ -1,14 +1,20 @@
+using MultiGuide.Data;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
 builder.Services.AddControllers();
+builder.Services.AddDataLayer(builder.Configuration);
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+if (app.Configuration.GetValue<bool>("Seed:Enabled"))
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    await scope.ServiceProvider.GetRequiredService<MultiGuide.Data.Seeding.DbSeeder>().SeedAsync();
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
