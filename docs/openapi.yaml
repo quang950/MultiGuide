@@ -1,0 +1,62 @@
+openapi: 3.0.3
+info:
+  title: MultiGuide API
+  version: 1.0.0
+  description: >-
+    Guest-facing contract (PRD v1.1, section 7).
+    JSON properties use snake_case. Timestamps are UTC, ISO 8601 with Z suffix.
+servers:
+  - url: /api/v1
+tags:
+  - name: Areas
+  - name: Sessions
+  - name: Payments
+  - name: Passes
+  - name: Pois
+  - name: Media
+  - name: PlayLogs
+paths: {}
+components:
+  securitySchemes:
+    AccessPass:
+      type: http
+      scheme: bearer
+      description: >-
+        Opaque access token returned once by POST /payments.
+        Send as Authorization: Bearer <access_token>.
+  schemas:
+    ProblemDetails:
+      type: object
+      description: Error body (RFC 7807) with a stable code and a trace id.
+      required: [status, code, traceId]
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+        code:
+          type: string
+          example: AREA_NOT_FOUND
+          enum:
+            - PASS_MISSING
+            - AUTH_REQUIRED
+            - PASS_INVALID
+            - PASS_EXPIRED
+            - PASS_AREA_MISMATCH
+            - FORBIDDEN
+            - AREA_NOT_FOUND
+            - POI_CONTENT_NOT_FOUND
+            - TRANSLATION_EXISTS
+            - PAYMENT_FAILED
+            - VALIDATION_ERROR
+            - IDEMPOTENCY_KEY_REUSED
+            - ACCOUNT_LOCKED
+            - RATE_LIMITED
+        traceId:
+          type: string
