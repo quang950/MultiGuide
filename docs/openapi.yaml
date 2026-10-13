@@ -139,11 +139,15 @@ paths:
               schema:
                 $ref: '#/components/schemas/SessionResponse'
         '404':
-          description: Session not found (error code to be agreed with the team).
+          description: Session not found (SESSION_NOT_FOUND).
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
+              example:
+                status: 404
+                code: SESSION_NOT_FOUND
+                traceId: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
         '422':
           description: Invalid language (VALIDATION_ERROR).
           content:
@@ -157,9 +161,10 @@ paths:
       summary: Pay for a session and receive an access pass (US-06, US-07)
       description: >-
         The Idempotency-Key header is required. Same key and same body returns
-        the earlier result (200). Same key with a different body returns 422
-        IDEMPOTENCY_KEY_REUSED. The plaintext access_token is returned only
-        once, in the 201 response.
+        the earlier payment result (200); the plaintext access token is not
+        returned again because it is only available in the original 201
+        response. Same key with a different body returns 422
+        IDEMPOTENCY_KEY_REUSED.
       parameters:
         - name: Idempotency-Key
           in: header
@@ -178,13 +183,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaymentResponse'
+                $ref: '#/components/schemas/PaymentCreatedResponse'
         '200':
-          description: Replay of an earlier request with the same key and body.
+          description: Replay of the earlier payment result; access_token is not returned.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaymentResponse'
+                $ref: '#/components/schemas/PaymentReplayResponse'
         '402':
           description: Gateway declined (PAYMENT_FAILED). Retry with a new key.
           content:
@@ -230,14 +235,23 @@ paths:
       description: |
         Cần AccessPass. Server stateless, không lưu tọa độ.
         Sắp xếp theo priority giảm dần, rồi distance_m tăng dần.
-        Debounce 3 giây và cooldown 5 phút do FE xử lý dựa trên within_trigger.
+        Debounce 3 giây và cooldown 5 phút do 
+        FE xử lý dựa trên within_trigger.
         Lỗi: 401 PASS_MISSING, 403 PASS_INVALID/PASS_EXPIRED, 422 VALIDATION_ERROR.
       security:
-        - accessPass: []
+        - AccessPass: []
       parameters:
         - {name: lat, in: query, required: true, schema: {type: number, format: double, minimum: -90, maximum: 90}}
         - {name: lng, in: query, required: true, schema: {type: number, format: double, minimum: -180, maximum: 180}}
-        - {name: lang, in: query, required: true, schema: {type: string, example: vi}}
+        - name: lang
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 10
+            pattern: '^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})?$'
+            example: vi
         - name: radius
           in: query
           required: false
@@ -271,10 +285,18 @@ paths:
         Lỗi: 401 PASS_MISSING, 403 PASS_INVALID/PASS_EXPIRED/PASS_AREA_MISMATCH,
         404 POI_CONTENT_NOT_FOUND (không có bản dịch nào hoặc POI tắt).
       security:
-        - accessPass: []
+        - AccessPass: []
       parameters:
         - {name: id, in: path, required: true, schema: {type: integer, format: int64}}
-        - {name: lang, in: query, required: true, schema: {type: string, example: vi}}
+        - name: lang
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 10
+            pattern: '^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})?$'
+            example: vi
       responses:
         "200":
           description: Nội dung POI
@@ -296,37 +318,79 @@ paths:
       tags: [Media]
       summary: Phục vụ audio và ảnh, hỗ trợ Range (US-18)
       description: |
-        Cần AccessPass. Không có header Range thì trả 200 và toàn bộ file;
-        có Range thì trả 206 kèm Content-Range.
+        Cần AccessPass. Không có header Range thì trả 200 và toàn bộ file.
+        Hỗ trợ một byte range đơn cho audio và ảnh; range hợp lệ trả 206 với
+        Content-Range, Content-Length và Content-Type. Range sai định dạng bị
+        bỏ qua và trả toàn bộ file (200); range không thỏa mãn kích thước file
+        trả 416 với Content-Range: bytes */<file-size>.
         Lỗi: 401 PASS_MISSING, 403 PASS_INVALID/PASS_EXPIRED, 404.
       security:
-        - accessPass: []
+        - AccessPass: []
       parameters:
         - {name: fileId, in: path, required: true, schema: {type: integer, format: int64}}
         - name: Range
           in: header
           required: false
-          schema: {type: string, example: "bytes=0-1048575"}
+          description: >-
+            RFC 7233 byte range. Only a single byte range is supported.
+            A malformed Range header is ignored and the full file is returned (200).
+            An unsatisfiable range returns 416.
+          schema:
+            type: string
+            pattern: '^bytes=\d+-(\d+)?$'
+            example: "bytes=0-1048575"
       responses:
         "200":
-          description: Toàn bộ file
+          description: Toàn bộ file. Content-Type xác định định dạng file.
           headers:
             Accept-Ranges: {schema: {type: string, example: bytes}}
+            Content-Length: {schema: {type: integer, format: int64, example: 3145728}}
+            Content-Type: {schema: {type: string, example: audio/mpeg}}
           content:
             audio/mpeg: {schema: {type: string, format: binary}}
             image/jpeg: {schema: {type: string, format: binary}}
             image/png: {schema: {type: string, format: binary}}
             image/webp: {schema: {type: string, format: binary}}
         "206":
-          description: Một phần file (khi có header Range)
+          description: Một phần file cho byte range đơn hợp lệ.
           headers:
             Accept-Ranges: {schema: {type: string, example: bytes}}
             Content-Range: {schema: {type: string, example: "bytes 0-1048575/3145728"}}
+            Content-Length: {schema: {type: integer, format: int64, example: 1048576}}
+            Content-Type: {schema: {type: string, example: audio/mpeg}}
           content:
             audio/mpeg: {schema: {type: string, format: binary}}
+            image/jpeg: {schema: {type: string, format: binary}}
+            image/png: {schema: {type: string, format: binary}}
+            image/webp: {schema: {type: string, format: binary}}
+        "416":
+          description: Byte range không nằm trong kích thước file.
+          headers:
+            Content-Range: {schema: {type: string, example: "bytes */3145728"}}
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
+  /play-logs:
+    post:
+      tags: [PlayLogs]
+      summary: Ghi lượt nghe (US-29)
+      description: |
+        Cần AccessPass. session lấy từ pass chứ không nhận từ body. Không lưu tọa độ.
+        Lỗi: 401 PASS_MISSING, 403 PASS_INVALID/PASS_EXPIRED/PASS_AREA_MISMATCH, 422 VALIDATION_ERROR.
+      security:
+        - AccessPass: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/PlayLogRequest"}
+            example: {poi_id: 3, language_code: vi, listened_sec: 95, completed: true}
+      responses:
+        "204":
+          description: Đã ghi
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
 components:
   securitySchemes:
     AccessPass:
@@ -347,7 +411,6 @@ components:
   schemas:
     ProblemDetails:
       type: object
-      # ... (giữ nguyên các schemas phía dưới của bạn)
       description: Error body (RFC 7807) with a stable code and a trace id.
       required: [status, code, traceId]
       properties:
@@ -372,6 +435,7 @@ components:
             - PASS_AREA_MISMATCH
             - FORBIDDEN
             - AREA_NOT_FOUND
+            - SESSION_NOT_FOUND
             - POI_CONTENT_NOT_FOUND
             - TRANSLATION_EXISTS
             - PAYMENT_FAILED
@@ -454,20 +518,65 @@ components:
         session_id:
           type: string
           format: uuid
-    PaymentResponse:
+    PaymentCreatedResponse:
       type: object
-      required: [status, expires_at]
+      required: [payment_id, status, access_token, expires_at, amount_usd, area_code]
       properties:
+        payment_id:
+          type: string
+          format: uuid
+          description: Unique identifier of the payment record.
         status:
           type: string
+          enum: [succeeded]
           example: succeeded
         access_token:
           type: string
-          nullable: true
-          description: Plaintext token. Only present in the first 201 response.
+          minLength: 64
+          maxLength: 64
+          description: >-
+            Plaintext opaque token (32 bytes, hex-encoded).
+            Returned ONLY in this original 201 response; not available on replay.
         expires_at:
           type: string
           format: date-time
+          description: UTC expiry of the access pass (ISO 8601, Z suffix).
+          example: "2026-10-14T01:30:00Z"
+        amount_usd:
+          type: number
+          format: double
+          description: Amount charged in USD.
+          example: 2.00
+        area_code:
+          type: string
+          description: Area this pass grants access to.
+          example: hoi-an
+    PaymentReplayResponse:
+      type: object
+      required: [payment_id, status, expires_at, amount_usd, area_code]
+      properties:
+        payment_id:
+          type: string
+          format: uuid
+          description: Unique identifier of the original payment record.
+        status:
+          type: string
+          enum: [succeeded]
+          example: succeeded
+        expires_at:
+          type: string
+          format: date-time
+          description: UTC expiry of the access pass (ISO 8601, Z suffix).
+          example: "2026-10-14T01:30:00Z"
+        amount_usd:
+          type: number
+          format: double
+          description: Amount charged in USD.
+          example: 2.00
+        area_code:
+          type: string
+          description: Area this pass grants access to.
+          example: hoi-an
     PassStatusResponse:
       type: object
       required: [status, expires_at]
@@ -486,7 +595,11 @@ components:
         title: {type: string}
         priority: {type: integer, minimum: 0, maximum: 100}
         trigger_radius_m: {type: integer, minimum: 5, maximum: 200}
-        distance_m: {type: integer, description: Khoảng cách làm tròn 1 mét}
+        distance_m:
+          type: integer
+          minimum: 0
+          maximum: 20037508
+          description: "Khoảng cách Haversine tính bằng mét, làm tròn 1 mét."
         within_trigger: {type: boolean, description: "true khi distance_m <= trigger_radius_m"}
     PoiContent:
       type: object
@@ -498,3 +611,11 @@ components:
         audio_url: {type: string, nullable: true}
         language: {type: string, description: Ngôn ngữ thực tế của nội dung trả về}
         fallback_language: {type: string, nullable: true, description: null nếu không phải fallback}
+    PlayLogRequest:
+      type: object
+      required: [poi_id, language_code, listened_sec, completed]
+      properties:
+        poi_id: {type: integer, format: int64}
+        language_code: {type: string, example: vi}
+        listened_sec: {type: integer, minimum: 0, maximum: 21600, description: Tối đa 6 giờ}
+        completed: {type: boolean}
